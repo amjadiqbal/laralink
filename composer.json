@@ -1,0 +1,45 @@
+{
+    "name": "amjadiqbal/laralink",
+    "description": "Local-First Package Manager for Laravel - automates local package development workflow",
+    "type": "library",
+    "keywords": ["laravel", "package-manager", "local-development", "composer"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Amjad Iqbal",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "illuminate/support": "^9.0|^10.0|^11.0",
+        "illuminate/console": "^9.0|^10.0|^11.0",
+        "illuminate/filesystem": "^9.0|^10.0|^11.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^7.0|^8.0|^9.0",
+        "phpunit/phpunit": "^9.0|^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Amjadiqbal\\Laralink\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Amjadiqbal\\Laralink\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Amjadiqbal\\Laralink\\LaralinkServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
