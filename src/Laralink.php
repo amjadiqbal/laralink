@@ -181,6 +181,8 @@ class Laralink
 
     /**
      * Return all packages currently required in composer.json.
+     * Packages in 'require' take precedence over 'require-dev' when the same
+     * package appears in both sections.
      *
      * @return array<string, string>
      */
@@ -188,9 +190,10 @@ class Laralink
     {
         $data = $this->readComposerJson();
 
+        // Merge require-dev first so that require entries take precedence
         return array_merge(
-            $data['require'] ?? [],
-            $data['require-dev'] ?? []
+            $data['require-dev'] ?? [],
+            $data['require'] ?? []
         );
     }
 }

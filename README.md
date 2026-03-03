@@ -67,7 +67,7 @@ Output example:
 
 ### `laralink:publish {package?}`
 
-Remove the local symlink and install the official version from Packagist. Optionally delete the local source code.
+Remove the local path repository and install the official version from Packagist. Optionally delete the local source code.
 
 ```bash
 php artisan laralink:publish vendor/package
