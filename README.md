@@ -36,10 +36,11 @@ The service provider is auto-discovered. No additional setup is needed.
 
 Link a package for local development. Laralink will:
 
-1. Check if `./packages/vendor/package` exists locally.
-2. If not, prompt for a Git URL (defaulting to the GitHub URL) and clone it.
-3. Add a Composer `path` repository to your `composer.json`.
-4. Run `composer require vendor/package:@dev` automatically.
+1. Ask you to choose between installing from a **Local Path** or a **Git Repository**.
+2. **Local Path mode**: Provide the path to your local package. Laralink will verify the `composer.json`, auto-detect the package name, copy files (excluding `.git/` and `vendor/`), and link it.
+3. **Git Repository mode**: Provide the package name (or pass it as an argument). Laralink will prompt for a Git URL (defaulting to the GitHub URL) and clone it.
+4. Add a Composer `path` repository to your `composer.json`.
+5. Run `composer require vendor/package:@dev` automatically.
 
 ```bash
 php artisan laralink:dev vendor/package
@@ -97,6 +98,41 @@ php artisan laralink:list
 # 4. When done, switch back to Packagist
 php artisan laralink:publish vendor/my-package
 ```
+
+---
+
+## Local-First Development
+
+You can install a package directly from a local folder on your machine for testing and development.
+
+### Steps
+
+1. Run the command:
+   ```bash
+   php artisan laralink:dev
+   ```
+
+2. Select **Local Path** when prompted:
+   ```
+   Install from:
+     [0] Local Path
+     [1] Git Repository
+   ```
+
+3. Provide the absolute path to your package folder:
+   ```
+   Enter the absolute path to your local package:
+   > /home/user/projects/my-package
+   ```
+
+4. The tool will automatically:
+   - **Verify** the `composer.json` in the source directory.
+   - **Detect** the package name (e.g., `vendor/my-package`) from the source `composer.json`.
+   - **Copy** the files to the project's `./packages` directory (excluding `.git/` and `vendor/` folders).
+   - **Link** it via a Composer path repository with the `symlink` option enabled.
+   - **Run** `composer require` to install the local package.
+
+> **Warning:** If you are not using the symlink option, changes made in the original local source will not be reflected automatically. You will need to re-run the command or use `composer update` to pick up changes.
 
 ---
 

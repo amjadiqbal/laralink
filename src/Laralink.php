@@ -107,9 +107,75 @@ class Laralink
     }
 
     /**
+     * Read and decode a composer.json file at the given path.
+     *
+     * @return array<string, mixed>
+     */
+    public function readPackageComposerJson(string $sourcePath): array
+    {
+        $path = rtrim($sourcePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'composer.json';
+
+        if (! $this->files->exists($path)) {
+            throw new RuntimeException('No composer.json found at the provided path.');
+        }
+
+        $contents = $this->files->get($path);
+        $decoded = json_decode($contents, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException('Failed to parse composer.json: ' . json_last_error_msg());
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Copy a package directory to the local packages folder, excluding .git and vendor directories.
+     */
+    public function copyPackageDirectory(string $sourcePath, string $vendor, string $package): void
+    {
+        $destinationPath = $this->localPath($vendor, $package);
+
+        if (! $this->files->isDirectory($destinationPath)) {
+            $this->files->makeDirectory($destinationPath, 0755, true);
+        }
+
+        $this->copyDirectoryFiltered($sourcePath, $destinationPath);
+    }
+
+    /**
+     * Recursively copy a directory, excluding .git and vendor directories.
+     */
+    private function copyDirectoryFiltered(string $source, string $destination): void
+    {
+        $source = rtrim($source, DIRECTORY_SEPARATOR);
+        $destination = rtrim($destination, DIRECTORY_SEPARATOR);
+
+        if (! $this->files->isDirectory($destination)) {
+            $this->files->makeDirectory($destination, 0755, true);
+        }
+
+        $excludeDirs = ['.git', 'vendor'];
+
+        foreach ($this->files->directories($source) as $dir) {
+            $dirName = basename($dir);
+
+            if (in_array($dirName, $excludeDirs, true)) {
+                continue;
+            }
+
+            $this->copyDirectoryFiltered($dir, $destination . DIRECTORY_SEPARATOR . $dirName);
+        }
+
+        foreach ($this->files->files($source) as $file) {
+            $this->files->copy($file, $destination . DIRECTORY_SEPARATOR . basename($file));
+        }
+    }
+
+    /**
      * Add a path repository entry for the given local package to composer.json.
      */
-    public function addPathRepository(string $vendor, string $package): void
+    public function addPathRepository(string $vendor, string $package, bool $symlink = false): void
     {
         $data = $this->readComposerJson();
         $url  = './packages/' . $vendor . '/' . $package;
@@ -122,10 +188,16 @@ class Laralink
             }
         }
 
-        $data['repositories'][] = [
+        $entry = [
             'type' => 'path',
             'url'  => $url,
         ];
+
+        if ($symlink) {
+            $entry['options'] = ['symlink' => true];
+        }
+
+        $data['repositories'][] = $entry;
 
         $this->writeComposerJson($data);
     }
