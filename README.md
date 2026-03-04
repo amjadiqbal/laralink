@@ -132,7 +132,7 @@ You can install a package directly from a local folder on your machine for testi
    - **Link** it via a Composer path repository with the `symlink` option enabled.
    - **Run** `composer require` to install the local package.
 
-> **Warning:** If you are not using the symlink option, changes made in the original local source will not be reflected automatically. You will need to re-run the command or use `composer update` to pick up changes.
+> **Note:** The local path mode enables the Composer `symlink` option by default, so changes made in `./packages` are reflected immediately. If you later modify the path repository entry to disable symlinks, you will need to run `composer update` to pick up changes from the original source.
 
 ---
 
