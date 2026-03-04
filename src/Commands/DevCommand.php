@@ -10,9 +10,75 @@ class DevCommand extends Command
 {
     protected $signature = 'laralink:dev {package? : The package name in vendor/package format}';
 
-    protected $description = 'Link a package for local development by cloning it into ./packages and updating composer.json';
+    protected $description = 'Link a package for local development from a local path or Git repository';
 
     public function handle(Laralink $laralink): int
+    {
+        $mode = $this->choice(
+            'Install from',
+            ['Local Path', 'Git Repository'],
+            1
+        );
+
+        if ($mode === 'Local Path') {
+            return $this->handleLocalPath($laralink);
+        }
+
+        return $this->handleGitClone($laralink);
+    }
+
+    private function handleLocalPath(Laralink $laralink): int
+    {
+        $sourcePath = $this->ask('Enter the absolute path to your local package');
+
+        if (empty($sourcePath)) {
+            $this->error('A source path is required.');
+            return self::FAILURE;
+        }
+
+        try {
+            $composerData = $laralink->readPackageComposerJson($sourcePath);
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
+            return self::FAILURE;
+        }
+
+        $packageName = $composerData['name'] ?? null;
+
+        if (empty($packageName)) {
+            $this->error('Package name not found in composer.json.');
+            return self::FAILURE;
+        }
+
+        try {
+            ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($packageName);
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
+            return self::FAILURE;
+        }
+
+        $this->info("Detected package: <comment>{$vendor}/{$package}</comment>");
+
+        if ($laralink->isLinked($vendor, $package)) {
+            $this->warn("Package <comment>{$vendor}/{$package}</comment> is already linked at ./packages/{$vendor}/{$package}.");
+
+            if (! $this->confirm('Do you want to re-link it and update composer.json?', false)) {
+                return self::SUCCESS;
+            }
+        }
+
+        $this->info("Copying files to <comment>./packages/{$vendor}/{$package}</comment>...");
+        $laralink->copyPackageDirectory($sourcePath, $vendor, $package);
+        $this->line('  <info>✓</info> Files copied successfully.');
+
+        $this->info('Updating <comment>composer.json</comment> with path repository...');
+        $laralink->addPathRepository($vendor, $package, true);
+        $this->line('  <info>✓</info> Path repository added.');
+
+        return $this->runComposerRequire($laralink, $vendor, $package);
+    }
+
+    private function handleGitClone(Laralink $laralink): int
     {
         $packageName = $this->argument('package');
 

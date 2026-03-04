@@ -52,6 +52,7 @@ class CommandTest extends TestCase
     public function test_dev_command_requires_package_name(): void
     {
         $this->artisan('laralink:dev')
+            ->expectsChoice('Install from', 'Git Repository', ['Local Path', 'Git Repository'])
             ->expectsQuestion('Enter the package name (vendor/package)', '')
             ->assertExitCode(1);
     }
@@ -59,6 +60,7 @@ class CommandTest extends TestCase
     public function test_dev_command_fails_on_invalid_package_name(): void
     {
         $this->artisan('laralink:dev', ['package' => 'invalid-name'])
+            ->expectsChoice('Install from', 'Git Repository', ['Local Path', 'Git Repository'])
             ->assertExitCode(1);
     }
 
@@ -87,5 +89,58 @@ class CommandTest extends TestCase
         // The command will fail at composer require, but it should reach that point
         $this->artisan('laralink:publish', ['package' => 'test-vendor/test-package'])
             ->assertExitCode(1); // Fails at composer require in test environment
+    }
+
+    public function test_dev_command_local_path_fails_when_no_composer_json(): void
+    {
+        $sourcePath = $this->tempDir . '/empty-source';
+        mkdir($sourcePath, 0755, true);
+
+        $this->artisan('laralink:dev')
+            ->expectsChoice('Install from', 'Local Path', ['Local Path', 'Git Repository'])
+            ->expectsQuestion('Enter the absolute path to your local package', $sourcePath)
+            ->expectsOutput('No composer.json found at the provided path.')
+            ->assertExitCode(1);
+    }
+
+    public function test_dev_command_local_path_fails_when_no_package_name(): void
+    {
+        $sourcePath = $this->tempDir . '/source-pkg';
+        mkdir($sourcePath, 0755, true);
+        file_put_contents(
+            $sourcePath . '/composer.json',
+            json_encode(['description' => 'no name'], JSON_PRETTY_PRINT)
+        );
+
+        $this->artisan('laralink:dev')
+            ->expectsChoice('Install from', 'Local Path', ['Local Path', 'Git Repository'])
+            ->expectsQuestion('Enter the absolute path to your local package', $sourcePath)
+            ->expectsOutput('Package name not found in composer.json.')
+            ->assertExitCode(1);
+    }
+
+    public function test_dev_command_local_path_fails_when_empty_path(): void
+    {
+        $this->artisan('laralink:dev')
+            ->expectsChoice('Install from', 'Local Path', ['Local Path', 'Git Repository'])
+            ->expectsQuestion('Enter the absolute path to your local package', '')
+            ->expectsOutput('A source path is required.')
+            ->assertExitCode(1);
+    }
+
+    public function test_dev_command_git_mode_requires_package_name(): void
+    {
+        $this->artisan('laralink:dev')
+            ->expectsChoice('Install from', 'Git Repository', ['Local Path', 'Git Repository'])
+            ->expectsQuestion('Enter the package name (vendor/package)', '')
+            ->assertExitCode(1);
+    }
+
+    public function test_dev_command_git_mode_fails_on_invalid_package_name(): void
+    {
+        $this->artisan('laralink:dev')
+            ->expectsChoice('Install from', 'Git Repository', ['Local Path', 'Git Repository'])
+            ->expectsQuestion('Enter the package name (vendor/package)', 'invalid-name')
+            ->assertExitCode(1);
     }
 }

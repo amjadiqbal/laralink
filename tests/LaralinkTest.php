@@ -202,4 +202,87 @@ class LaralinkTest extends TestCase
         $fresh = $this->laralink->readComposerJson();
         $this->assertSame(true, $fresh['extra']['test']);
     }
+
+    public function test_read_package_composer_json_returns_array(): void
+    {
+        $sourcePath = $this->tempDir . '/source-package';
+        mkdir($sourcePath, 0755, true);
+        file_put_contents(
+            $sourcePath . '/composer.json',
+            json_encode(['name' => 'vendor/my-package', 'description' => 'A test package'], JSON_PRETTY_PRINT)
+        );
+
+        $data = $this->laralink->readPackageComposerJson($sourcePath);
+
+        $this->assertIsArray($data);
+        $this->assertSame('vendor/my-package', $data['name']);
+    }
+
+    public function test_read_package_composer_json_throws_when_missing(): void
+    {
+        $sourcePath = $this->tempDir . '/empty-dir';
+        mkdir($sourcePath, 0755, true);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('No composer.json found at the provided path.');
+
+        $this->laralink->readPackageComposerJson($sourcePath);
+    }
+
+    public function test_copy_package_directory_copies_files(): void
+    {
+        $sourcePath = $this->tempDir . '/source-package';
+        mkdir($sourcePath . '/src', 0755, true);
+        file_put_contents($sourcePath . '/composer.json', '{}');
+        file_put_contents($sourcePath . '/src/MyClass.php', '<?php class MyClass {}');
+
+        $this->laralink->copyPackageDirectory($sourcePath, 'vendor', 'my-package');
+
+        $destPath = $this->laralink->localPath('vendor', 'my-package');
+        $this->assertFileExists($destPath . '/composer.json');
+        $this->assertFileExists($destPath . '/src/MyClass.php');
+    }
+
+    public function test_copy_package_directory_excludes_git_and_vendor(): void
+    {
+        $sourcePath = $this->tempDir . '/source-package';
+        mkdir($sourcePath . '/.git', 0755, true);
+        mkdir($sourcePath . '/vendor', 0755, true);
+        mkdir($sourcePath . '/src', 0755, true);
+        file_put_contents($sourcePath . '/.git/config', 'git config');
+        file_put_contents($sourcePath . '/vendor/autoload.php', '<?php');
+        file_put_contents($sourcePath . '/src/MyClass.php', '<?php class MyClass {}');
+        file_put_contents($sourcePath . '/composer.json', '{}');
+
+        $this->laralink->copyPackageDirectory($sourcePath, 'vendor', 'filtered-pkg');
+
+        $destPath = $this->laralink->localPath('vendor', 'filtered-pkg');
+        $this->assertDirectoryDoesNotExist($destPath . '/.git');
+        $this->assertDirectoryDoesNotExist($destPath . '/vendor');
+        $this->assertFileExists($destPath . '/src/MyClass.php');
+        $this->assertFileExists($destPath . '/composer.json');
+    }
+
+    public function test_add_path_repository_with_symlink_option(): void
+    {
+        $this->laralink->addPathRepository('vendor', 'package', true);
+
+        $data = $this->laralink->readComposerJson();
+
+        $this->assertArrayHasKey('repositories', $data);
+        $this->assertCount(1, $data['repositories']);
+        $this->assertSame('path', $data['repositories'][0]['type']);
+        $this->assertSame('./packages/vendor/package', $data['repositories'][0]['url']);
+        $this->assertSame(['symlink' => true], $data['repositories'][0]['options']);
+    }
+
+    public function test_add_path_repository_without_symlink_has_no_options(): void
+    {
+        $this->laralink->addPathRepository('vendor', 'package');
+
+        $data = $this->laralink->readComposerJson();
+
+        $this->assertArrayHasKey('repositories', $data);
+        $this->assertArrayNotHasKey('options', $data['repositories'][0]);
+    }
 }
