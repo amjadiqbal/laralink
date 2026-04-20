@@ -2,10 +2,10 @@
 
 namespace Amjadiqbal\Laralink\Commands;
 
+use Amjadiqbal\Laralink\Contracts\ProcessRunner;
 use Amjadiqbal\Laralink\Laralink;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
-use Symfony\Component\Process\Process;
 
 class PublishCommand extends Command
 {
@@ -14,6 +14,11 @@ class PublishCommand extends Command
                             {--delete : Also delete the local source code from ./packages}';
 
     protected $description = 'Publish a package by removing the local symlink and installing the official version from Packagist';
+
+    public function __construct(private ProcessRunner $processRunner)
+    {
+        parent::__construct();
+    }
 
     public function handle(Laralink $laralink, Filesystem $files): int
     {
@@ -59,11 +64,16 @@ class PublishCommand extends Command
 
         $this->info("Publishing <comment>{$vendor}/{$package}</comment>...");
 
+        // Snapshot composer.json before mutating so we can roll back on failure.
+        $composerSnapshot = $laralink->readComposerJson();
+
         $this->info('Removing path repository from <comment>composer.json</comment>...');
         $laralink->removePathRepository($vendor, $package);
         $this->line('  <info>✓</info> Path repository removed.');
 
         if (! $this->runComposerRequire($laralink, $vendor, $package)) {
+            $laralink->writeComposerJson($composerSnapshot);
+            $this->warn('Rolled back composer.json to its previous state.');
             return self::FAILURE;
         }
 
@@ -83,19 +93,19 @@ class PublishCommand extends Command
     {
         $this->info("Running <comment>composer require {$vendor}/{$package}</comment>...");
 
-        $process = new Process(['composer', 'require', "{$vendor}/{$package}"], $laralink->getBasePath());
-        $process->setTimeout(300);
-        $process->run(function (string $type, string $buffer): void {
-            $this->output->write($buffer);
-        });
+        $success = $this->processRunner->run(
+            ['composer', 'require', "{$vendor}/{$package}"],
+            $laralink->getBasePath(),
+            fn (string $type, string $buffer) => $this->output->write($buffer)
+        );
 
-        if (! $process->isSuccessful()) {
+        if (! $success) {
             $this->warn('Composer require did not complete successfully. You may need to run it manually.');
             $this->line("  Try: <comment>composer require {$vendor}/{$package}</comment>");
-            return false;
+        } else {
+            $this->line('  <info>✓</info> Official package installed from Packagist.');
         }
 
-        $this->line('  <info>✓</info> Official package installed from Packagist.');
-        return true;
+        return $success;
     }
 }

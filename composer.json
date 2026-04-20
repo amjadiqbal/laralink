@@ -1,8 +1,16 @@
 {
     "name": "amjadiqbal/laralink",
-    "description": "Local-First Package Manager for Laravel - automates local package development workflow",
+    "description": "Local-First Package Manager for Laravel – link, develop, and publish Composer packages with Artisan commands",
+    "homepage": "https://github.com/amjadiqbal/laralink",
     "type": "library",
-    "keywords": ["laravel", "package-manager", "local-development", "composer"],
+    "keywords": [
+        "laravel",
+        "package-manager",
+        "local-development",
+        "composer",
+        "artisan",
+        "developer-tools"
+    ],
     "license": "MIT",
     "authors": [
         {
@@ -12,13 +20,14 @@
     ],
     "require": {
         "php": "^8.0",
-        "illuminate/support": "^9.0|^10.0|^11.0",
-        "illuminate/console": "^9.0|^10.0|^11.0",
-        "illuminate/filesystem": "^9.0|^10.0|^11.0"
+        "illuminate/console": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/filesystem": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
+        "symfony/process": "^6.0|^7.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^7.0|^8.0|^9.0",
-        "phpunit/phpunit": "^9.0|^10.0|^11.0"
+        "orchestra/testbench": "^7.0|^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0|^11.0"
     },
     "autoload": {
         "psr-4": {
@@ -37,9 +46,11 @@
             ]
         }
     },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
     "config": {
         "sort-packages": true
     },
-    "minimum-stability": "dev",
     "prefer-stable": true
 }

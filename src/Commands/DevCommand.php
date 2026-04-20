@@ -2,15 +2,20 @@
 
 namespace Amjadiqbal\Laralink\Commands;
 
+use Amjadiqbal\Laralink\Contracts\ProcessRunner;
 use Amjadiqbal\Laralink\Laralink;
 use Illuminate\Console\Command;
-use Symfony\Component\Process\Process;
 
 class DevCommand extends Command
 {
     protected $signature = 'laralink:dev {package? : The package name in vendor/package format}';
 
     protected $description = 'Link a package for local development from a local path or Git repository';
+
+    public function __construct(private ProcessRunner $processRunner)
+    {
+        parent::__construct();
+    }
 
     public function handle(Laralink $laralink): int
     {
@@ -138,13 +143,13 @@ class DevCommand extends Command
             mkdir(dirname($localPath), 0755, true);
         }
 
-        $process = new Process(['git', 'clone', $gitUrl, $localPath]);
-        $process->setTimeout(300);
-        $process->run(function (string $type, string $buffer): void {
-            $this->output->write($buffer);
-        });
+        $success = $this->processRunner->run(
+            ['git', 'clone', $gitUrl, $localPath],
+            null,
+            fn (string $type, string $buffer) => $this->output->write($buffer)
+        );
 
-        if (! $process->isSuccessful()) {
+        if (! $success) {
             $this->error('Failed to clone the repository. Please check the Git URL and try again.');
             return false;
         }
@@ -169,13 +174,13 @@ class DevCommand extends Command
     {
         $this->info("Running <comment>composer require {$vendor}/{$package}:@dev</comment>...");
 
-        $process = new Process(['composer', 'require', "{$vendor}/{$package}:@dev"], $laralink->getBasePath());
-        $process->setTimeout(300);
-        $process->run(function (string $type, string $buffer): void {
-            $this->output->write($buffer);
-        });
+        $success = $this->processRunner->run(
+            ['composer', 'require', "{$vendor}/{$package}:@dev"],
+            $laralink->getBasePath(),
+            fn (string $type, string $buffer) => $this->output->write($buffer)
+        );
 
-        if (! $process->isSuccessful()) {
+        if (! $success) {
             $this->warn('Composer require did not complete successfully. You may need to run it manually.');
             $this->line("  Try: <comment>composer require {$vendor}/{$package}:@dev</comment>");
             return self::FAILURE;

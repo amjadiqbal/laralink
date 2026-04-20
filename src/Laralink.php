@@ -103,7 +103,11 @@ class Laralink
             throw new RuntimeException('Failed to encode composer.json: ' . json_last_error_msg());
         }
 
-        $this->files->put($this->getBasePath() . DIRECTORY_SEPARATOR . 'composer.json', $json . PHP_EOL);
+        $path    = $this->getBasePath() . DIRECTORY_SEPARATOR . 'composer.json';
+        $tmpPath = $path . '.tmp';
+
+        $this->files->put($tmpPath, $json . PHP_EOL);
+        $this->files->move($tmpPath, $path);
     }
 
     /**
@@ -136,9 +140,11 @@ class Laralink
     {
         $destinationPath = $this->localPath($vendor, $package);
 
-        if (! $this->files->isDirectory($destinationPath)) {
-            $this->files->makeDirectory($destinationPath, 0755, true);
+        if ($this->files->isDirectory($destinationPath)) {
+            $this->files->deleteDirectory($destinationPath);
         }
+
+        $this->files->makeDirectory($destinationPath, 0755, true);
 
         $this->copyDirectoryFiltered($sourcePath, $destinationPath);
     }
