@@ -1,45 +1,92 @@
 {
     "name": "amjadiqbal/laralink",
-    "description": "Local-First Package Manager for Laravel - automates local package development workflow",
+    "description": "Local-First Package Manager for Laravel - Streamline local package development with smart detection, automatic linking, and seamless Packagist integration",
     "type": "library",
-    "keywords": ["laravel", "package-manager", "local-development", "composer"],
+    "version": "1.1.0",
+    "keywords": [
+        "laravel",
+        "package-manager",
+        "local-development",
+        "laravel-package",
+        "package-development",
+        "dev-tools",
+        "composer",
+        "symlink",
+        "git-integration",
+        "workflow-automation",
+        "package-linking",
+        "local-packages",
+        "laravel-artisan",
+        "development-tools",
+        "php-package",
+        "package-management",
+        "local-first",
+        "developer-experience",
+        "dx",
+        "cli-tool",
+        "automation",
+        "monorepo"
+    ],
+    "homepage": "https://github.com/amjadiqbal/laralink",
     "license": "MIT",
     "authors": [
         {
             "name": "Amjad Iqbal",
+            "email": "hi@amjad.com.pk",
+            "homepage": "https://amjad.com.pk",
             "role": "Developer"
         }
     ],
+    "support": {
+        "issues": "https://github.com/AmjadIqbal/laralink/issues",
+        "source": "https://github.com/AmjadIqbal/laralink",
+        "docs": "https://github.com/amjadiqbal/laralink#readme",
+        "email": "hi@amjad.com.pk"
+    },
     "require": {
-        "php": "^8.0",
-        "illuminate/support": "^9.0|^10.0|^11.0",
-        "illuminate/console": "^9.0|^10.0|^11.0",
-        "illuminate/filesystem": "^9.0|^10.0|^11.0"
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/console": "^10.0|^11.0",
+        "illuminate/filesystem": "^10.0|^11.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^7.0|^8.0|^9.0",
-        "phpunit/phpunit": "^9.0|^10.0|^11.0"
+        "phpunit/phpunit": "^10.0",
+        "orchestra/testbench": "^8.0|^9.0",
+        "mockery/mockery": "^1.5"
     },
     "autoload": {
         "psr-4": {
-            "Amjadiqbal\\Laralink\\": "src/"
+            "AmjadIqbal\\Laralink\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Amjadiqbal\\Laralink\\Tests\\": "tests/"
+            "AmjadIqbal\\Laralink\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Amjadiqbal\\Laralink\\LaralinkServiceProvider"
-            ]
+                "AmjadIqbal\\Laralink\\LaralinkServiceProvider"
+            ],
+            "aliases": {
+                "Laralink": "AmjadIqbal\\Laralink\\Facades\\Laralink"
+            }
+        },
+        "branch-alias": {
+            "dev-master": "1.1-dev"
         }
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "preferred-install": "dist"
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage",
+        "format": "php-cs-fixer fix",
+        "analyse": "phpstan analyse src tests"
+    }
 }
