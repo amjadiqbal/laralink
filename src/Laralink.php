@@ -1,6 +1,6 @@
 <?php
 
-namespace Amjadiqbal\Laralink;
+namespace AmjadIqbal\Laralink;
 
 use Illuminate\Filesystem\Filesystem;
 use RuntimeException;

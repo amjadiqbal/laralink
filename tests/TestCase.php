@@ -1,8 +1,8 @@
 <?php
 
-namespace Amjadiqbal\Laralink\Tests;
+namespace AmjadIqbal\Laralink\Tests;
 
-use Amjadiqbal\Laralink\LaralinkServiceProvider;
+use AmjadIqbal\Laralink\LaralinkServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase

@@ -1,8 +1,8 @@
 <?php
 
-namespace Amjadiqbal\Laralink\Tests;
+namespace AmjadIqbal\Laralink\Tests;
 
-use Amjadiqbal\Laralink\Laralink;
+use AmjadIqbal\Laralink\Laralink;
 use Illuminate\Filesystem\Filesystem;
 
 class CommandTest extends TestCase
