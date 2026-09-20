@@ -525,4 +525,4 @@ For priority support and enterprise solutions, please reach out via Upwork for d
 
 ## Author
 
-**Amjad Iqbal** — [amjad.com.pk](https://amjad.com.pk) · [hi@amjad.com.pk](mailto:hi@amjad.com.pk) · [GitHub](https://github.com/AmjadIqbal)
+**Amjad Iqbal** — [amjad.com.pk](https://amjad.com.pk) · [Discord](https://discord.com/channels/1352854772859932702/1352854916690874388) · [Upwork](https://www.upwork.com/freelancers/amjadkhatri) · [GitHub](https://github.com/AmjadIqbal)
