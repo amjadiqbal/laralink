@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Facade;
  * @method static string packagesPath()
  * @method static string localPath(string $vendor, string $package)
  * @method static bool isLinked(string $vendor, string $package)
- * @method static array parseName(string $name)
- * @method static array linkedPackages()
- * @method static array requiredPackages()
+ * @method static bool hasPathRepository(string $vendor, string $package)
+ * @method static array{vendor: string, package: string} parseName(string $name)
+ * @method static array<int, string> linkedPackages()
+ * @method static array<string, string> requiredPackages()
+ * @method static array<string, string> installedVersions()
+ * @method static array<string, array<string, mixed>> state()
  *
  * @see \AmjadIqbal\Laralink\Laralink
  */

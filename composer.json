@@ -1,34 +1,23 @@
 {
     "name": "amjadiqbal/laralink",
-    "description": "Local-First Package Manager for Laravel - Streamline local package development with smart detection, automatic linking, and seamless Packagist integration",
-    "type": "library",
-    "version": "1.1.1",
+    "description": "Local package development for Laravel: link a package from a local folder or a Git repository into your app with one artisan command (Composer path repository + symlink), see what is linked, and switch back to the Packagist release when you're done.",
     "keywords": [
         "laravel",
-        "package-manager",
-        "local-development",
         "laravel-package",
         "package-development",
-        "dev-tools",
+        "local-development",
         "composer",
+        "path-repository",
         "symlink",
-        "git-integration",
-        "workflow-automation",
-        "package-linking",
-        "local-packages",
-        "laravel-artisan",
-        "development-tools",
-        "php-package",
-        "package-management",
-        "local-first",
-        "developer-experience",
-        "dx",
-        "cli-tool",
-        "automation",
-        "monorepo"
+        "monorepo",
+        "artisan",
+        "artisan-command",
+        "developer-tools",
+        "git"
     ],
-    "homepage": "https://github.com/amjadiqbal/laralink",
+    "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/amjadiqbal/laralink",
     "authors": [
         {
             "name": "Amjad Iqbal",
@@ -37,21 +26,24 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/AmjadIqbal/laralink/issues",
-        "source": "https://github.com/AmjadIqbal/laralink",
-        "docs": "https://github.com/amjadiqbal/laralink#readme",
-        "email": "hi@amjad.com.pk"
+        "issues": "https://github.com/amjadiqbal/laralink/issues",
+        "source": "https://github.com/amjadiqbal/laralink",
+        "docs": "https://github.com/amjadiqbal/laralink#readme"
     },
     "require": {
-        "php": "^8.1",
-        "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
-        "illuminate/console": "^10.0|^11.0|^12.0|^13.0",
-        "illuminate/filesystem": "^10.0|^11.0|^12.0|^13.0"
+        "php": "^8.3",
+        "composer/semver": "^3.4",
+        "illuminate/console": "^12.0|^13.0",
+        "illuminate/filesystem": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "symfony/process": "^7.2|^8.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.0",
-        "orchestra/testbench": "^8.0|^9.0",
-        "mockery/mockery": "^1.5"
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.20",
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "phpstan/phpstan": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -71,21 +63,19 @@
             "aliases": {
                 "Laralink": "AmjadIqbal\\Laralink\\Facades\\Laralink"
             }
-        },
-        "branch-alias": {
-            "dev-master": "1.1-dev"
         }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "lint": "vendor/bin/pint --test",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=1G"
     },
     "config": {
         "sort-packages": true,
-        "preferred-install": "dist"
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "scripts": {
-        "test": "phpunit",
-        "test-coverage": "phpunit --coverage-html coverage",
-        "format": "php-cs-fixer fix",
-        "analyse": "phpstan analyse src tests"
-    }
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

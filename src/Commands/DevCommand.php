@@ -1,191 +1,369 @@
 <?php
 
-namespace Amjadiqbal\Laralink\Commands;
+namespace AmjadIqbal\Laralink\Commands;
 
-use Amjadiqbal\Laralink\Laralink;
+use AmjadIqbal\Laralink\Commands\Concerns\RunsProcesses;
+use AmjadIqbal\Laralink\Laralink;
+use AmjadIqbal\Laralink\Support\CompatibilityChecker;
 use Illuminate\Console\Command;
-use Symfony\Component\Process\Process;
+use Illuminate\Filesystem\Filesystem;
+use RuntimeException;
 
 class DevCommand extends Command
 {
-    protected $signature = 'laralink:dev {package? : The package name in vendor/package format}';
+    use RunsProcesses;
 
-    protected $description = 'Link a package for local development from a local path or Git repository';
+    protected $signature = 'laralink:dev
+                            {package? : The package name (vendor/package)}
+                            {--source= : A local path or a Git URL (HTTPS, SSH or file://)}
+                            {--branch= : Git branch or tag to clone (default: the repository default branch)}
+                            {--copy : Copy a local package into ./packages instead of symlinking it}
+                            {--skip-version-check : Do not check the package PHP and Laravel constraints}
+                            {--force : Replace an existing symlink and skip the version check}';
 
-    public function handle(Laralink $laralink): int
+    protected $description = 'Link a package for local development from a local path or a Git repository';
+
+    private const LOCAL = 'A local path';
+
+    private const GIT = 'A Git repository';
+
+    private const MANUAL = 'Enter a path';
+
+    public function handle(Laralink $laralink, Filesystem $files): int
     {
-        $mode = $this->choice(
-            'Install from',
-            ['Local Path', 'Git Repository'],
-            1
-        );
+        try {
+            return $this->link($laralink, $files);
+        } catch (RuntimeException $e) {
+            $this->components->error($e->getMessage());
 
-        if ($mode === 'Local Path') {
-            return $this->handleLocalPath($laralink);
+            return self::FAILURE;
         }
-
-        return $this->handleGitClone($laralink);
     }
 
-    private function handleLocalPath(Laralink $laralink): int
+    private function link(Laralink $laralink, Filesystem $files): int
     {
-        $sourcePath = $this->ask('Enter the absolute path to your local package');
+        $name = $this->argument('package') ? $this->normalizedName($laralink, (string) $this->argument('package')) : null;
+        $source = $this->option('source');
 
-        if (empty($sourcePath)) {
-            $this->error('A source path is required.');
-            return self::FAILURE;
-        }
+        // Files already in ./packages but not linked (e.g. after laralink:publish without --delete): link them in place.
+        if ($name !== null && ! $source) {
+            ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($name);
 
-        try {
-            $composerData = $laralink->readPackageComposerJson($sourcePath);
-        } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
-            return self::FAILURE;
-        }
+            if ($laralink->isLinked($vendor, $package)) {
+                if ($laralink->hasPathRepository($vendor, $package) && ! $this->option('force')) {
+                    $this->components->info("{$name} is already linked at ./packages/{$name}.");
 
-        $packageName = $composerData['name'] ?? null;
+                    return self::SUCCESS;
+                }
 
-        if (empty($packageName)) {
-            $this->error('Package name not found in composer.json.');
-            return self::FAILURE;
-        }
-
-        try {
-            ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($packageName);
-        } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
-            return self::FAILURE;
-        }
-
-        $this->info("Detected package: <comment>{$vendor}/{$package}</comment>");
-
-        if ($laralink->isLinked($vendor, $package)) {
-            $this->warn("Package <comment>{$vendor}/{$package}</comment> is already linked at ./packages/{$vendor}/{$package}.");
-
-            if (! $this->confirm('Do you want to re-link it and update composer.json?', false)) {
-                return self::SUCCESS;
+                return $this->requireLinked($laralink, $name, $laralink->state()[$name] ?? ['kind' => 'existing'], null);
             }
         }
 
-        $this->info("Copying files to <comment>./packages/{$vendor}/{$package}</comment>...");
-        $laralink->copyPackageDirectory($sourcePath, $vendor, $package);
-        $this->line('  <info>✓</info> Files copied successfully.');
+        if (! $source) {
+            $source = $this->askForSource($laralink, $name);
+        }
 
-        $this->info('Updating <comment>composer.json</comment> with path repository...');
-        $laralink->addPathRepository($vendor, $package, true);
-        $this->line('  <info>✓</info> Path repository added.');
+        if ($source === null) {
+            return self::FAILURE;
+        }
 
-        return $this->runComposerRequire($laralink, $vendor, $package);
+        $local = $this->localDirectory($source);
+
+        return $local !== null
+            ? $this->linkLocal($laralink, $local, $name)
+            : $this->linkGit($laralink, $files, $this->assertGitUrl($source), $name);
     }
 
-    private function handleGitClone(Laralink $laralink): int
+    private function linkLocal(Laralink $laralink, string $path, ?string $expected): int
     {
-        $packageName = $this->argument('package');
+        $name = $this->packageName($laralink, $laralink->readPackageComposerJson($path), $expected);
+        ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($name);
 
-        if (empty($packageName)) {
-            $packageName = $this->ask('Enter the package name (vendor/package)');
+        if (realpath($laralink->localPath($vendor, $package)) === $path) {
+            return $this->requireLinked($laralink, $name, $laralink->state()[$name] ?? ['kind' => 'existing'], null);
         }
 
-        if (empty($packageName)) {
-            $this->error('Package name is required.');
+        if (! $this->makeRoom($laralink, $vendor, $package) || ! $this->compatible($laralink->readPackageComposerJson($path))) {
             return self::FAILURE;
         }
 
-        try {
-            ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($packageName);
-        } catch (\RuntimeException $e) {
-            $this->error($e->getMessage());
-            return self::FAILURE;
-        }
+        $kind = $this->option('copy') ? 'copy' : 'symlink';
 
-        $this->info("Setting up local development for <comment>{$vendor}/{$package}</comment>...");
-
-        if ($laralink->isLinked($vendor, $package)) {
-            $this->warn("Package <comment>{$vendor}/{$package}</comment> is already linked at ./packages/{$vendor}/{$package}.");
-
-            if (! $this->confirm('Do you want to re-link it and update composer.json?', false)) {
-                return self::SUCCESS;
-            }
+        if ($kind === 'copy') {
+            $laralink->copyPackageDirectory($path, $vendor, $package);
         } else {
-            if (! $this->clonePackage($laralink, $vendor, $package)) {
+            $laralink->symlinkPackageDirectory($path, $vendor, $package);
+        }
+
+        $this->components->twoColumnDetail(ucfirst($kind), "./packages/{$name} <fg=gray>→</> {$path}");
+
+        return $this->requireLinked($laralink, $name, ['kind' => $kind, 'source' => $path], fn () => $laralink->removeLocalCopy($vendor, $package));
+    }
+
+    private function linkGit(Laralink $laralink, Filesystem $files, string $url, ?string $expected): int
+    {
+        if ($expected !== null) {
+            ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($expected);
+
+            if (! $this->makeRoom($laralink, $vendor, $package)) {
                 return self::FAILURE;
             }
         }
 
-        $this->info('Updating <comment>composer.json</comment> with path repository...');
-        $laralink->addPathRepository($vendor, $package);
-        $this->line('  <info>✓</info> Path repository added.');
+        $branch = $this->option('branch') ?: null;
+        $files->ensureDirectoryExists($laralink->packagesPath());
+        $temp = $laralink->packagesPath().DIRECTORY_SEPARATOR.'.clone-'.bin2hex(random_bytes(4));
 
-        return $this->runComposerRequire($laralink, $vendor, $package);
-    }
+        $this->components->info('Cloning '.$url.($branch ? " ({$branch})" : ''));
+        $command = array_merge(['git', 'clone'], $branch ? ['--branch', $branch] : [], [$url, $temp]);
 
-    private function clonePackage(Laralink $laralink, string $vendor, string $package): bool
-    {
-        $localPath = $laralink->localPath($vendor, $package);
+        if (! $this->process($laralink, $command)) {
+            $files->deleteDirectory($temp);
+            $this->components->error('git clone failed. Check the URL, the branch and your access to the repository.');
 
-        $this->info("Package <comment>{$vendor}/{$package}</comment> is not available locally.");
-
-        $gitUrl = $this->askForGitUrl($vendor, $package);
-
-        if (empty($gitUrl)) {
-            $this->error('A Git URL is required to clone the package.');
-            return false;
-        }
-
-        $this->info("Cloning <comment>{$gitUrl}</comment> into <comment>./packages/{$vendor}/{$package}</comment>...");
-
-        if (! is_dir(dirname($localPath))) {
-            mkdir(dirname($localPath), 0755, true);
-        }
-
-        $process = new Process(['git', 'clone', $gitUrl, $localPath]);
-        $process->setTimeout(300);
-        $process->run(function (string $type, string $buffer): void {
-            $this->output->write($buffer);
-        });
-
-        if (! $process->isSuccessful()) {
-            $this->error('Failed to clone the repository. Please check the Git URL and try again.');
-            return false;
-        }
-
-        $this->line('  <info>✓</info> Repository cloned successfully.');
-        return true;
-    }
-
-    private function askForGitUrl(string $vendor, string $package): string
-    {
-        $suggestedUrl = "https://github.com/{$vendor}/{$package}.git";
-
-        $gitUrl = $this->ask(
-            "Enter the Git URL to clone (press Enter to use suggested URL)",
-            $suggestedUrl
-        );
-
-        return trim((string) $gitUrl);
-    }
-
-    private function runComposerRequire(Laralink $laralink, string $vendor, string $package): int
-    {
-        $this->info("Running <comment>composer require {$vendor}/{$package}:@dev</comment>...");
-
-        $process = new Process(['composer', 'require', "{$vendor}/{$package}:@dev"], $laralink->getBasePath());
-        $process->setTimeout(300);
-        $process->run(function (string $type, string $buffer): void {
-            $this->output->write($buffer);
-        });
-
-        if (! $process->isSuccessful()) {
-            $this->warn('Composer require did not complete successfully. You may need to run it manually.');
-            $this->line("  Try: <comment>composer require {$vendor}/{$package}:@dev</comment>");
             return self::FAILURE;
         }
 
-        $this->line('');
-        $this->info("✓ Package <comment>{$vendor}/{$package}</comment> is now linked for local development.");
-        $this->line("  Source code: <comment>./packages/{$vendor}/{$package}</comment>");
-        $this->line("  Run <comment>php artisan laralink:list</comment> to see all linked packages.");
+        try {
+            $composer = $laralink->readPackageComposerJson($temp);
+            $name = $this->packageName($laralink, $composer, $expected);
+            ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($name);
+        } catch (RuntimeException $e) {
+            $files->deleteDirectory($temp);
+            throw $e;
+        }
+
+        if (! $this->makeRoom($laralink, $vendor, $package) || ! $this->compatible($composer)) {
+            $files->deleteDirectory($temp);
+
+            return self::FAILURE;
+        }
+
+        $files->ensureDirectoryExists(dirname($laralink->localPath($vendor, $package)));
+        $files->moveDirectory($temp, $laralink->localPath($vendor, $package));
+        $this->components->twoColumnDetail('Cloned', "./packages/{$name}");
+
+        return $this->requireLinked(
+            $laralink,
+            $name,
+            array_filter(['kind' => 'clone', 'source' => $url, 'branch' => $branch]),
+            fn () => $laralink->removeLocalCopy($vendor, $package)
+        );
+    }
+
+    /**
+     * Add the path repository and run composer require. On failure, put composer.json back and undo what this run created.
+     *
+     * @param  array<string, mixed>  $entry
+     */
+    private function requireLinked(Laralink $laralink, string $name, array $entry, ?callable $undo): int
+    {
+        ['vendor' => $vendor, 'package' => $package] = $laralink->parseName($name);
+
+        $before = $laralink->readComposerJson();
+        $known = $laralink->state()[$name] ?? null;
+        $previous = is_array($known) && array_key_exists('previous', $known) ? $known['previous'] : $laralink->requirement($name);
+
+        $laralink->addPathRepository($vendor, $package);
+        $laralink->rememberLink($name, $entry + ['previous' => $previous, 'linked_at' => date('c')]);
+
+        $arguments = ['require', "{$name}:@dev", '--with-all-dependencies'];
+
+        if (($previous['section'] ?? null) === 'require-dev') {
+            $arguments[] = '--dev';
+        }
+
+        if (! $this->composer($laralink, $arguments)) {
+            $laralink->writeComposerJson($before);
+            $laralink->rememberLink($name, $known);
+
+            if ($undo !== null) {
+                $undo();
+            }
+
+            $this->newLine();
+            $this->components->error("Composer could not install {$name} from ./packages/{$name}. composer.json has been restored.");
+            $this->line('  See why: <comment>composer why-not '.$name.' @dev</comment>');
+
+            return self::FAILURE;
+        }
+
+        $version = $laralink->installedVersions()[$name] ?? '@dev';
+        $this->newLine();
+        $this->components->info("{$name} ({$version}) is now installed from ./packages/{$name}.");
+        $this->components->bulletList([
+            "Edit the code in ./packages/{$name}; vendor/{$name} is a symlink to it, so changes show up immediately.",
+            'php artisan laralink:list shows every linked package.',
+            "php artisan laralink:publish {$name} switches back to the released version.",
+        ]);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Make sure ./packages/vendor/package is free. --force replaces a symlink; real directories are never overwritten.
+     */
+    private function makeRoom(Laralink $laralink, string $vendor, string $package): bool
+    {
+        if (! $laralink->isLinked($vendor, $package)) {
+            return true;
+        }
+
+        $path = $laralink->localPath($vendor, $package);
+
+        if (is_link($path) && $this->option('force')) {
+            $laralink->removeLocalCopy($vendor, $package);
+
+            return true;
+        }
+
+        $this->components->error(is_link($path)
+            ? "./packages/{$vendor}/{$package} is already linked to ".readlink($path).'. Use --force to point it somewhere else.'
+            : "./packages/{$vendor}/{$package} already exists. Run laralink:dev {$vendor}/{$package} to link it as it is, or laralink:publish {$vendor}/{$package} --delete first.");
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $composer
+     */
+    private function compatible(array $composer): bool
+    {
+        if ($this->option('skip-version-check') || $this->option('force')) {
+            return true;
+        }
+
+        $checker = new CompatibilityChecker(PHP_VERSION, $this->laravel->version());
+        $ok = true;
+
+        foreach ($checker->check($composer) as $result) {
+            $ok = $ok && $result['ok'];
+            $this->components->twoColumnDetail(
+                $result['check'].' <fg=gray>'.($result['constraint'] ?? 'no constraint').'</>',
+                ($result['ok'] ? '<fg=green>OK</>' : '<fg=red>NOT MET</>').' <fg=gray>(you have '.$result['current'].')</>'
+            );
+        }
+
+        if (! $ok) {
+            $this->components->error('This package does not support this app\'s PHP or Laravel version. Use --skip-version-check to link it anyway.');
+        }
+
+        return $ok;
+    }
+
+    private function askForSource(Laralink $laralink, ?string $name): ?string
+    {
+        if (! $this->input->isInteractive()) {
+            if ($name === null) {
+                $this->components->error('Pass a package name or --source when running without interaction.');
+
+                return null;
+            }
+
+            return "https://github.com/{$name}.git";
+        }
+
+        if ($this->choice('Where is the package?', [self::LOCAL, self::GIT], 0) === self::GIT) {
+            $name ??= $this->normalizedName($laralink, (string) $this->ask('Package name (vendor/package)'));
+
+            if (! $this->option('branch') && ($branch = $this->ask('Branch or tag (leave empty for the default branch)'))) {
+                $this->input->setOption('branch', $branch);
+            }
+
+            return (string) $this->ask('Git URL', "https://github.com/{$name}.git");
+        }
+
+        $found = $this->detectLocalPackages($laralink);
+
+        if ($found !== []) {
+            $options = array_map(fn ($path, $package) => "{$package} ({$path})", array_keys($found), $found);
+            $picked = $this->choice('Which package?', array_merge($options, [self::MANUAL]), 0);
+
+            if ($picked !== self::MANUAL) {
+                return array_keys($found)[array_search($picked, $options, true)];
+            }
+        }
+
+        return (string) $this->ask('Path to the package (the folder with its composer.json)');
+    }
+
+    /**
+     * Packages next to this app (../*, ../*\/*) and in ~/projects, keyed by path.
+     *
+     * @return array<string, string>
+     */
+    private function detectLocalPackages(Laralink $laralink): array
+    {
+        $roots = [dirname($laralink->getBasePath())];
+        $home = getenv('HOME');
+
+        if ($home && is_dir($home.'/projects')) {
+            $roots[] = $home.'/projects';
+        }
+
+        $found = [];
+        $self = realpath($laralink->getBasePath());
+
+        foreach ($roots as $root) {
+            foreach (array_merge(glob($root.'/*/composer.json') ?: [], glob($root.'/*/*/composer.json') ?: []) as $file) {
+                $path = realpath(dirname($file));
+                $data = json_decode((string) file_get_contents($file), true);
+
+                if (! $path || $path === $self || str_starts_with($path, $self.DIRECTORY_SEPARATOR)
+                    || ! is_array($data) || empty($data['name']) || ($data['type'] ?? 'library') === 'project') {
+                    continue;
+                }
+
+                $found[$path] = $data['name'];
+            }
+        }
+
+        asort($found);
+
+        return $found;
+    }
+
+    private function localDirectory(string $source): ?string
+    {
+        if (str_starts_with($source, '~/') && getenv('HOME')) {
+            $source = getenv('HOME').substr($source, 1);
+        }
+
+        $path = realpath($source);
+
+        return $path !== false && is_dir($path) ? $path : null;
+    }
+
+    private function assertGitUrl(string $source): string
+    {
+        if (preg_match('#^(https?|ssh|git|file)://#', $source) || preg_match('#^[\w.-]+@[\w.-]+:#', $source) || str_ends_with($source, '.git')) {
+            return $source;
+        }
+
+        throw new RuntimeException("'{$source}' is neither a directory nor a Git URL.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $composer
+     */
+    private function packageName(Laralink $laralink, array $composer, ?string $expected): string
+    {
+        if (empty($composer['name']) || ! is_string($composer['name'])) {
+            throw new RuntimeException('The package composer.json has no "name".');
+        }
+
+        $name = $this->normalizedName($laralink, $composer['name']);
+
+        if ($expected !== null && $expected !== $name) {
+            throw new RuntimeException("The package is named {$name} in its composer.json, not {$expected}.");
+        }
+
+        return $name;
+    }
+
+    private function normalizedName(Laralink $laralink, string $name): string
+    {
+        return implode('/', $laralink->parseName($name));
     }
 }
