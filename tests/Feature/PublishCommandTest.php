@@ -37,8 +37,12 @@ it('only unlinks a symlink with --delete and never touches the source folder', f
         ->and(file_exists($source.'/src/Hello.php'))->toBeTrue();
 });
 
-it('backs up a copied package before deleting it', function () {
-    linkForPublish($this, 'acme/hello', ['--copy' => true]);
+it('backs up a package, Git history included, before deleting it', function () {
+    $this->runner->cloneComposer = ['name' => 'acme/hello'];
+    $this->artisan('laralink:dev', ['--source' => 'https://github.com/acme/hello.git'])->assertSuccessful();
+    mkdir($this->project.'/packages/acme/hello/src');
+    file_put_contents($this->project.'/packages/acme/hello/src/Hello.php', '<?php');
+    file_put_contents($this->project.'/packages/acme/hello/.git/HEAD', 'ref: refs/heads/main');
 
     $this->artisan('laralink:publish', ['package' => 'acme/hello', '--delete' => true, '--backup' => true, '--force' => true])
         ->expectsOutputToContain('.backups')
@@ -47,6 +51,7 @@ it('backs up a copied package before deleting it', function () {
     $backups = glob($this->project.'/packages/.backups/acme/hello-*');
     expect($backups)->toHaveCount(1)
         ->and(file_exists($backups[0].'/src/Hello.php'))->toBeTrue()
+        ->and(file_get_contents($backups[0].'/.git/HEAD'))->toBe('ref: refs/heads/main')
         ->and(file_exists($this->project.'/packages/acme/hello'))->toBeFalse();
 });
 

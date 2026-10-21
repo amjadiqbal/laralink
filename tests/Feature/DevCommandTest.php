@@ -22,6 +22,9 @@ it('copies instead of symlinking with --copy, skipping .git and vendor', functio
     $source = $this->makePackage('acme/hello');
     mkdir($source.'/.git');
     mkdir($source.'/vendor');
+    mkdir($source.'/.github');
+    file_put_contents($source.'/.github/funding.yml', 'x');
+    symlink('src/Hello.php', $source.'/hello-link.php');
 
     $this->artisan('laralink:dev', ['--source' => $source, '--copy' => true])->assertSuccessful();
 
@@ -29,7 +32,9 @@ it('copies instead of symlinking with --copy, skipping .git and vendor', functio
     expect(is_link($copy))->toBeFalse()
         ->and(file_exists($copy.'/src/Hello.php'))->toBeTrue()
         ->and(file_exists($copy.'/.git'))->toBeFalse()
-        ->and(file_exists($copy.'/vendor'))->toBeFalse();
+        ->and(file_exists($copy.'/vendor'))->toBeFalse()
+        ->and(file_exists($copy.'/.github/funding.yml'))->toBeTrue()
+        ->and(readlink($copy.'/hello-link.php'))->toBe('src/Hello.php');
 });
 
 it('clones a Git repository into ./packages under the name from its composer.json', function () {

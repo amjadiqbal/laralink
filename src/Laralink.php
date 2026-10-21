@@ -390,14 +390,22 @@ class Laralink
 
         $this->files->ensureDirectoryExists($destination);
 
-        foreach ($this->files->directories($source) as $dir) {
-            if (! in_array(basename($dir), $exclude, true)) {
-                $this->copyDirectoryFiltered($dir, $destination.DIRECTORY_SEPARATOR.basename($dir), $exclude);
+        // scandir rather than Filesystem::directories(): Finder skips dot folders, and .git or .github must come along.
+        foreach (scandir($source) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..' || in_array($entry, $exclude, true)) {
+                continue;
             }
-        }
 
-        foreach ($this->files->files($source, true) as $file) {
-            $this->files->copy($file->getPathname(), $destination.DIRECTORY_SEPARATOR.$file->getFilename());
+            $from = $source.DIRECTORY_SEPARATOR.$entry;
+            $to = $destination.DIRECTORY_SEPARATOR.$entry;
+
+            if (is_link($from)) {
+                @symlink((string) readlink($from), $to);
+            } elseif (is_dir($from)) {
+                $this->copyDirectoryFiltered($from, $to, $exclude);
+            } else {
+                $this->files->copy($from, $to);
+            }
         }
     }
 }

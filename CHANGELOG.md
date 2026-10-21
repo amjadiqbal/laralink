@@ -1,6 +1,52 @@
 # Changelog
 
-All notable changes to the Laralink package will be documented in this file.
+All notable changes to `amjadiqbal/laralink` are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased] - planned as 2.0.0
+
+The three commands were rebuilt. 1.x was never on Packagist; its tagged commands did not have the options
+its README described (`--source`, `--branch`, `--json`, `--filter`, `--backup`), `laralink:publish --delete`
+removed the files of a locally linked package, and nothing was undone when Composer failed.
+
+### Added
+
+- `laralink:dev --source=` takes a folder (absolute, relative or `~/`) or any Git URL (`https://`,
+  `git@host:`, `ssh://`, `file://`); `--branch=` clones a branch or tag; `--copy` copies instead of
+  symlinking; `--skip-version-check`; `--force` re-points an existing symlink.
+- A PHP and Laravel compatibility check against the package's own `composer.json` (Composer semver rules).
+- Interactive mode lists packages found next to the app (`../*`, `../*/*`) and in `~/projects`.
+- `laralink:list --json` and `--filter=local|remote`, with the constraint, the installed version from
+  `composer.lock`, and a status (linked, local files not linked, linked but not required, remote).
+- `laralink:publish --backup` (copies to `./packages/.backups/`, Git history included) and `--force`.
+- `./packages/.laralink.json` remembers how each package was linked and the constraint it had before.
+- `php artisan about` shows the installed version and a support link.
+
+### Changed
+
+- Requires PHP 8.3+ and Laravel 12 or 13.
+- The path repository is added first in `composer.json`, so it wins over other repositories.
+- `laralink:dev` keeps a package that was in `require-dev` in `require-dev`.
+- `laralink:publish` restores the constraint the package had before it was linked (or requires the latest
+  release) instead of always running a bare `composer require`.
+
+### Fixed
+
+- `laralink:publish --delete` on a symlinked package only removes the symlink; the source folder is never
+  touched. A clone with uncommitted changes is not deleted without `--backup` or `--force`.
+- If Composer fails, `laralink:dev` restores `composer.json` and removes the link or clone it created, and
+  `laralink:publish` restores `composer.json` and leaves the package linked.
+- After a forced re-link to another folder, `vendor/` now points at the new folder (`composer reinstall`).
+- `--copy` and backups keep dot folders such as `.git` and `.github`.
+- The command classes declared `Amjadiqbal\Laralink` (lowercase i) while Composer autoloads
+  `AmjadIqbal\Laralink`.
+- `composer.json` no longer has a hard-coded `version` field or `minimum-stability: dev`.
+
+### Removed
+
+- The `--symlink` option (symlinking is the default for folders; use `--copy` to copy).
+- The `laralink-config` publish tag mentioned in the old README; there was never a config file.
 
 ## [1.1.1] - 2026-09-19
 
