@@ -17,7 +17,7 @@
     ],
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/amjadiqbal/laralink",
+    "homepage": "https://amjad.com.pk/laravel/packages/laralink",
     "authors": [
         {
             "name": "Amjad Iqbal",
@@ -28,7 +28,7 @@
     "support": {
         "issues": "https://github.com/amjadiqbal/laralink/issues",
         "source": "https://github.com/amjadiqbal/laralink",
-        "docs": "https://github.com/amjadiqbal/laralink#readme"
+        "docs": "https://amjad.com.pk/laravel/packages/laralink"
     },
     "require": {
         "php": "^8.3",

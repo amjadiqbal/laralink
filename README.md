@@ -11,6 +11,8 @@ Work on a Composer package inside the Laravel app that uses it. One artisan comm
 local folder or a Git repository through a symlinked Composer path repository, so every edit shows up in the
 app immediately. A second command switches it back to the released version from Packagist when you're done.
 
+Docs and demo: [amjad.com.pk/laravel/packages/laralink](https://amjad.com.pk/laravel/packages/laralink)
+
 [![Latest Version](https://img.shields.io/packagist/v/amjadiqbal/laralink.svg?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
 [![PHP Version](https://img.shields.io/packagist/php-v/amjadiqbal/laralink?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
 [![License](https://img.shields.io/packagist/l/amjadiqbal/laralink.svg?style=flat-square)](LICENSE.md)
