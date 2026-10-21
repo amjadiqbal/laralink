@@ -7,8 +7,8 @@ All notable changes to `amjadiqbal/laralink` are documented here. The format fol
 ## [Unreleased] - planned as 2.0.0
 
 The three commands were rebuilt. 1.x was never on Packagist; its tagged commands did not have the options
-its README described (`--source`, `--branch`, `--json`, `--filter`, `--backup`), `laralink:publish --delete`
-removed the files of a locally linked package, and nothing was undone when Composer failed.
+its README described (`--source`, `--branch`, `--json`, `--filter`, `--backup`), nothing was undone when
+Composer failed, and `laralink:publish` always required the latest release whatever constraint you had.
 
 ### Added
 
