@@ -4,7 +4,7 @@ All notable changes to `amjadiqbal/laralink` are documented here. The format fol
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - planned as 2.0.0
+## [2.0.0] - 2026-10-21
 
 The three commands were rebuilt. 1.x was never on Packagist; its tagged commands did not have the options
 its README described (`--source`, `--branch`, `--json`, `--filter`, `--backup`), nothing was undone when
@@ -49,6 +49,9 @@ Composer failed, and `laralink:publish` always required the latest release whate
 - The `laralink-config` publish tag mentioned in the old README; there was never a config file.
 
 ## [1.1.1] - 2026-09-19
+
+Never published to Packagist; the `v1.0.0` and `v1.1.1` tags were removed on 2026-10-21 so that
+`composer require` can only resolve 2.0.0 or later.
 
 Found and fixed during manual integration testing against a fresh Laravel 13 / PHP 8.5 install
 (before publishing to Laravel News). Reproduced by requiring the package into a real app and
