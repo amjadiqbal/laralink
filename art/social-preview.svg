@@ -1,0 +1,31 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0B1220"/><stop offset="100%" stop-color="#111C33"/></linearGradient><linearGradient id="iconbg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0F172A"/><stop offset="100%" stop-color="#132844"/></linearGradient></defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <path d="M90 190 C130 140 160 140 200 190 C240 240 270 240 310 190" fill="none" stroke="#F472B6" stroke-width="3" stroke-dasharray="8 8" stroke-linecap="round"/><circle cx="90" cy="190" r="22" fill="#F472B6"/><text x="90" y="242" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#94A3B8">your folder</text><circle cx="200" cy="190" r="22" fill="#1E293B"/><text x="200" y="242" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#94A3B8">./packages</text><circle cx="310" cy="190" r="22" fill="#F472B6"/><text x="310" y="242" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#94A3B8">vendor/</text><path d="M81 184 h7 l3 3 h8 v10 h-18 Z" fill="#0B1220"/><rect x="186" y="183" width="16" height="14" rx="7" fill="none" stroke="#F472B6" stroke-width="3.5"/><rect x="198" y="183" width="16" height="14" rx="7" fill="none" stroke="#F472B6" stroke-width="3.5"/><rect x="301" y="182" width="18" height="16" rx="3" fill="none" stroke="#0B1220" stroke-width="3"/><path d="M301 188 h18" stroke="#0B1220" stroke-width="3"/>
+  <path d="M970 190 C1010 140 1040 140 1080 190 C1120 240 1150 240 1190 190" fill="none" stroke="#F472B6" stroke-width="3" stroke-dasharray="8 8" stroke-linecap="round"/><circle cx="970" cy="190" r="22" fill="#1E293B"/><text x="970" y="242" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#94A3B8">./packages</text><circle cx="1080" cy="190" r="22" fill="#1E293B"/><text x="1080" y="242" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#94A3B8">laralink:publish</text><circle cx="1190" cy="190" r="22" fill="#F472B6"/><text x="1190" y="242" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#94A3B8">the release</text><rect x="956" y="183" width="16" height="14" rx="7" fill="none" stroke="#F472B6" stroke-width="3.5"/><rect x="968" y="183" width="16" height="14" rx="7" fill="none" stroke="#F472B6" stroke-width="3.5"/><path d="M1072 190 h14 M1081 184 l6 6 l-6 6" fill="none" stroke="#F472B6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M1181 182 h9 l9 9 l-8 8 l-10 -10 Z" fill="none" stroke="#0B1220" stroke-width="3" stroke-linejoin="round"/><circle cx="1186" cy="187" r="2" fill="#0B1220"/>
+  <g transform="translate(490,50) scale(0.5859)">
+    <rect width="512" height="512" rx="112" fill="url(#iconbg)"/>
+    <rect x="60" y="128" width="176" height="256" rx="30" fill="#1E293B"/>
+    <path d="M60 158 a30 30 0 0 1 30 -30 h52 l20 22 h44 a30 30 0 0 1 30 30 v8 H60 Z" fill="#334155"/>
+    <rect x="88" y="214" width="96" height="14" rx="7" fill="#F472B6"/>
+    <rect x="88" y="244" width="120" height="14" rx="7" fill="#475569"/>
+    <rect x="104" y="274" width="88" height="14" rx="7" fill="#475569"/>
+    <rect x="88" y="304" width="64" height="14" rx="7" fill="#475569"/>
+    <rect x="276" y="128" width="176" height="256" rx="30" fill="#FFFFFF"/>
+    <rect x="276" y="128" width="176" height="46" rx="30" fill="#E2E8F0"/>
+    <rect x="276" y="152" width="176" height="22" fill="#E2E8F0"/>
+    <circle cx="304" cy="151" r="7" fill="#CBD5E1"/><circle cx="326" cy="151" r="7" fill="#CBD5E1"/>
+    <rect x="304" y="214" width="120" height="14" rx="7" fill="#0F172A"/>
+    <rect x="304" y="244" width="96" height="14" rx="7" fill="#94A3B8"/>
+    <rect x="304" y="304" width="120" height="44" rx="12" fill="#FCE7F3"/>
+    <rect x="320" y="320" width="72" height="12" rx="6" fill="#DB2777"/>
+    <rect x="178" y="226" width="96" height="60" rx="30" fill="none" stroke="#0F172A" stroke-width="30"/>
+    <rect x="238" y="226" width="96" height="60" rx="30" fill="none" stroke="#0F172A" stroke-width="30"/>
+    <rect x="178" y="226" width="96" height="60" rx="30" fill="none" stroke="#F472B6" stroke-width="16"/>
+    <rect x="238" y="226" width="96" height="60" rx="30" fill="none" stroke="#DB2777" stroke-width="16"/>
+</g>
+  <text x="640" y="430" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="88" font-weight="700" fill="#F8FAFC">Laralink</text>
+  <text x="640" y="482" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="500" fill="#F472B6" letter-spacing="0.3">Local package development for Laravel</text>
+  <g font-family="Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#CBD5E1" text-anchor="middle"><g transform="translate(184,516)"><rect width="262" height="38" rx="19.0" fill="#16213A" stroke="#24324F"/><text x="131.0" y="25.1">local folder or Git repo</text></g><g transform="translate(456,516)"><rect width="272" height="38" rx="19.0" fill="#16213A" stroke="#24324F"/><text x="136.0" y="25.1">symlinked path repository</text></g><g transform="translate(738,516)"><rect width="357" height="38" rx="19.0" fill="#16213A" stroke="#24324F"/><text x="178.5" y="25.1">back to the release in one command</text></g></g>
+  <text x="640" y="605" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="17" fill="#64748B">php artisan laralink:dev vendor/package</text>
+</svg>

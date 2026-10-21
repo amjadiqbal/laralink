@@ -1,528 +1,185 @@
-# 🔗 Laralink
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/banner-dark.png">
+    <img alt="Laralink: local package development for Laravel" src="art/banner-light.png" width="100%">
+  </picture>
+</p>
 
-**Local-First Package Manager for Laravel**
+# Laralink: local package development for Laravel
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/amjadiqbal/laralink.svg?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
-[![Total Downloads](https://img.shields.io/packagist/dt/amjadiqbal/laralink.svg?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
-[![License](https://img.shields.io/packagist/l/amjadiqbal/laralink.svg?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
-[![PHP Version Require](https://img.shields.io/packagist/php-v/amjadiqbal/laralink?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
-[![Laravel Version](https://shields.io|10.x|11.x-red?style=flat-square)](https://laravel.com)
+Work on a Composer package inside the Laravel app that uses it. One artisan command links the package from a
+local folder or a Git repository through a symlinked Composer path repository, so every edit shows up in the
+app immediately. A second command switches it back to the released version from Packagist when you're done.
 
-*Streamline your Laravel package development workflow with intelligent local package management*
+[![Latest Version](https://img.shields.io/packagist/v/amjadiqbal/laralink.svg?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
+[![PHP Version](https://img.shields.io/packagist/php-v/amjadiqbal/laralink?style=flat-square)](https://packagist.org/packages/amjadiqbal/laralink)
+[![License](https://img.shields.io/packagist/l/amjadiqbal/laralink.svg?style=flat-square)](LICENSE.md)
 
----
-
-## ✨ Why Laralink?
-
-Developing Laravel packages locally shouldn't be a hassle. Laralink transforms the tedious process of cloning repositories, manually editing `composer.json`, and configuring path repositories into a single, intelligent command.
-
-### 🎯 Key Benefits
-
-- **⚡ Lightning Fast Setup**: Link any package in seconds, not minutes.
-- **🧠 Smart Detection**: Automatically finds packages on your machine.
-- **🔗 Seamless Integration**: Works with Git repositories and local paths.
-- **🔄 Instant Reflection**: Changes appear immediately with automatic symlinks.
-- **📦 Clean Workflow**: Organized `./packages` directory keeps your project tidy.
-- **🛡️ Error-Proof**: Intelligent error handling with actionable solutions.
-
----
-
-## 📦 Installation
-
-You can install the package via composer:
+<p align="center">
+  <img alt="Terminal: php artisan laralink:dev links acme/greeter from ~/code/greeter after a PHP and Laravel version check, then laralink:list shows two linked packages" src="art/screenshot.png" width="100%">
+</p>
 
 ```bash
-composer require amjadiqbal/laralink
+composer require amjadiqbal/laralink --dev
+
+php artisan laralink:dev --source=~/code/my-package   # link a folder on your machine
+php artisan laralink:dev vendor/package --branch=fix   # or clone a branch from GitHub
+php artisan laralink:list                              # what is linked, what is installed
+php artisan laralink:publish vendor/package            # back to the Packagist release
 ```
 
-The service provider is automatically discovered by Laravel. No additional setup is required.
+## Why this package
 
-### Optional: Publish Configuration
-If you want to customize Laralink's behavior, publish the configuration file:
+Composer can already install a package from a local folder: you add a `path` repository to `composer.json`,
+require the package at `@dev`, and later undo both and restore the constraint you had. Laralink does those
+steps for you and makes them safe to repeat:
+
+- **One command to link.** From a folder (symlinked, or copied with `--copy`) or any Git URL and branch. The
+  path repository goes first in `composer.json`, so it wins over Packagist and any other repository.
+- **Checks before it touches anything.** The package's own PHP and Laravel constraints are compared with your
+  app's versions using Composer's semver rules, so a mismatch is one clear line instead of a page of solver
+  output.
+- **Undoes its own changes.** If Composer can't install the package, `composer.json` is restored and the link
+  or clone it just made is removed.
+- **Remembers what you had.** `laralink:publish` puts back the exact constraint the package had before you
+  linked it (for example `^2.3` in `require-dev`), or the latest release if it wasn't required before.
+- **Careful with your code.** Removing a symlinked package only removes the symlink; your source folder is never
+  touched. A cloned package with uncommitted changes is not deleted unless you back it up or force it.
+
+## Requirements
+
+- PHP 8.3+
+- Laravel 12 or 13
+- Composer 2 and Git on your `PATH`
+- macOS or Linux (symlinks; on Windows use `--copy`)
+
+## Installation
 
 ```bash
-php artisan vendor:publish --tag=laralink-config
+composer require amjadiqbal/laralink --dev
 ```
 
-This will create a `config/laralink.php` file where you can modify default settings.
+The service provider is discovered automatically. There is nothing to publish or configure. Add `/packages`
+to your app's `.gitignore` if you don't want linked packages committed.
 
-### Requirements
-- **PHP**: 8.1 or higher
-- **Laravel**: 9.0, 10.0, or 11.0
-- **Composer**: 2.0 or higher
+## Usage
 
----
+### Link a package: `laralink:dev`
 
-## 🚀 Quick Start
-Here's how to get started with Laralink in 3 simple steps:
-
-### 1. Link a Package
 ```bash
-# Interactive mode (recommended for beginners)
+php artisan laralink:dev [vendor/package] [--source=] [--branch=] [--copy] [--skip-version-check] [--force]
+```
+
+| Option | What it does |
+|---|---|
+| `--source=` | A folder (absolute, relative or `~/...`) or a Git URL: `https://`, `git@host:...`, `ssh://`, `file://`. |
+| `--branch=` | Branch or tag to clone. Default: the repository's default branch. |
+| `--copy` | Copy a local folder into `./packages` instead of symlinking it (`.git`, `vendor`, `node_modules` are skipped). |
+| `--skip-version-check` | Don't compare the package's PHP/Laravel constraints with your app. |
+| `--force` | Point an existing symlink somewhere else, and skip the version check. |
+
+```bash
+# Interactive: pick "A local path" or "A Git repository". Packages in folders next to your
+# app (../*, ../*/*) and in ~/projects are listed for you to choose from.
 php artisan laralink:dev
 
-# Direct installation from GitHub
-php artisan laralink:dev vendor/package-name
+# A folder on your machine: ./packages/vendor/package becomes a symlink to it
+php artisan laralink:dev --source=../my-package
+
+# A package by name, cloned from https://github.com/vendor/package.git
+php artisan laralink:dev vendor/package
+
+# Any Git URL and branch, e.g. a colleague's fork
+php artisan laralink:dev --source=git@gitlab.com:acme/billing.git --branch=feature/invoices
 ```
 
-### 2. Check Status
-```bash
-# View all packages and their status
-php artisan laralink:list
-```
+What happens, in order:
 
-### 3. Publish When Done
-```bash
-# Switch back to Packagist version
-php artisan laralink:publish vendor/package-name
-```
+1. The package's `composer.json` is read (after cloning, for Git sources) and its `name` decides where it goes:
+   `./packages/vendor/package`.
+2. Its `php` and `laravel/framework` / `illuminate/*` constraints are checked against your app.
+3. The folder is symlinked, copied or cloned into `./packages/vendor/package`.
+4. A path repository with `"symlink": true` is added first in your `composer.json`.
+5. `composer require vendor/package:@dev --with-all-dependencies` runs (with `--dev` if the package was in
+   `require-dev`). `vendor/vendor/package` is now a symlink, so edits are live without `composer update`.
 
----
+If a package is already linked, the command says so and stops. If `./packages/vendor/package` exists but isn't
+linked (for example after `laralink:publish` without `--delete`), `php artisan laralink:dev vendor/package`
+links those files as they are.
 
-## 📖 Available Commands
-
-### `laralink:dev` - Link Package for Development
-Link a package for local development with smart detection and automatic setup.
-
-**Signature:**
-```bash
-php artisan laralink:dev [package-name] [options]
-```
-
-**Options:**
-- `--source=` - Direct source (Git URL or local path)
-- `--branch=main` - Specify Git branch
-- `--symlink` - Use symlink instead of copying files
-- `--no-interaction` - Skip all interactive prompts
-
-**Examples:**
-```bash
-# Interactive mode with smart detection
-php artisan laralink:dev
-
-# Quick link from GitHub
-php artisan laralink:dev vendor/package-name
-
-# Link specific branch
-php artisan laralink:dev vendor/package --branch=develop
-
-# Direct Git URL
-php artisan laralink:dev vendor/package --source=https://github.com/vendor/package.git
-
-# Use SSH format
-php artisan laralink:dev vendor/package --source=git@github.com:vendor/package.git
-
-# Link local package
-php artisan laralink:dev --source=/path/to/local/package
-```
-
-**What it does:**
-- 🧠 Automatically detects local packages in common directories.
-- 🌐 Normalizes Git URLs (HTTPS, SSH, shorthand formats).
-- 🌿 Clones specific branches for testing.
-- 📋 Verifies `composer.json` and detects package name.
-- 📁 Copies or symlinks files to `./packages/vendor/package`.
-- 🔗 Adds path repository to your `composer.json`.
-- 📦 Runs `composer require vendor/package:@dev`.
-
----
-
-### `laralink:list` - View Package Status
-Display all packages with their link status and statistics.
-
-**Signature:**
-```bash
-php artisan laralink:list [options]
-```
-
-**Options:**
-- `--json` - Output as JSON (for CI/CD pipelines)
-- `--filter=` - Filter by status (`local`|`remote`|`all`)
-
-**Examples:**
-```bash
-# Standard view
-php artisan laralink:list
-
-# JSON output for scripting
-php artisan laralink:list --json
-
-# Filter linked packages only
-php artisan laralink:list --filter=local
-```
-
-**Sample Output:**
-```text
-📊 Package Status
-
-+---------------------+--------------------+---------+-----------------------------+
-
-| Package             | Status             | Version | Location                    |
-+---------------------+--------------------+---------+-----------------------------+
-
-| 🔗 vendor/my-package| Linked (local)     | @dev    | ./packages/vendor/my-package|
-| 🌐 laravel/framework| Remote (Packagist) | ^11.0   | vendor/                     |
-+---------------------+--------------------+---------+-----------------------------+
-
-📈 Statistics:
-  📦 Total packages: 2
-  🔗 Linked locally: 1
-  🌐 Remote (Packagist): 1
-```
-
----
-
-### `laralink:publish` - Switch to Packagist Version
-Remove local linking and switch back to the official Packagist version.
-
-**Signature:**
-```bash
-php artisan laralink:publish [package-name] [options]
-```
-
-**Options:**
-- `--delete` - Remove local source code after publishing
-- `--force` - Skip confirmation prompts
-- `--backup` - Create backup before deleting local files
-
-**Examples:**
-```bash
-# Interactive selection
-php artisan laralink:publish
-
-# Publish specific package
-php artisan laralink:publish vendor/my-package
-
-# Publish and cleanup with backup
-php artisan laralink:publish vendor/my-package --delete --backup
-```
-
-**What it does:**
-- 🔍 Shows list of linked packages to choose from.
-- 🗑️ Removes path repository from `composer.json`.
-- 📦 Runs `composer update` to fetch Packagist version.
-- 💾 Optionally creates backup before deletion.
-- 🧹 Optionally removes local source code.
-
----
-
-## 📁 How It Works
-
-```text
-your-laravel-project/
-├── app/
-├── packages/                    ← Managed by Laralink
-│   └── vendor/
-│       ├── my-package/          ← Cloned/linked source code
-│       └── another-package/     ← Symlinked to local path
-├── composer.json                ← Auto-updated with path repositories
-└── vendor/                      ← Standard Composer vendor directory
-```
-
-When you run `laralink:dev`, Laralink:
-1. Creates the package directory in `./packages/vendor/package-name`.
-2. Adds a path repository entry in your project's `composer.json`.
-3. Installs the package with `composer require`.
-4. Enables symlink by default for instant change reflection.
-
----
-
-## 🔄 Typical Workflow
-
-### Starting Local Development
-```bash
-php artisan laralink:dev vendor/my-package
-```
-
-### Making Changes
-- Edit files directly in `./packages/vendor/my-package`.
-- Changes are immediately reflected in your Laravel app.
-- No need to run `composer update`!
-
-### Monitoring Packages
-```bash
-php artisan laralink:list
-```
-
-### Publishing to Production
-```bash
-# Switch back to Packagist version
-php artisan laralink:publish vendor/my-package
-
-# Or cleanup completely
-php artisan laralink:publish vendor/my-package --delete --backup
-```
-
----
-
-## 🎨 Local-First Development
-
-### Linking from a Local Path
-```bash
-# Run the interactive command
-php artisan laralink:dev
-```
-1. Select **"Local Path"** when prompted.
-2. Provide the absolute path to your package: `/home/user/projects/my-package`
-
-Laralink will automatically:
-- ✅ Verify the `composer.json` exists and is valid.
-- 🔍 Detect the package name from `composer.json`.
-- 📋 Copy files to `./packages` (excluding `.git/` and `vendor/`).
-- 🔗 Create a Composer path repository with symlink option.
-- 📦 Run `composer require` to install the package.
-
-### Symlink Benefits
-When using symlinks (default for local paths):
-- 🔄 Changes reflect immediately in your Laravel application.
-- ⚡ No need to run `composer update` after each change.
-- 🧪 Perfect for rapid development and testing.
-- 💾 No duplicate files taking up disk space.
-
-> 💡 **Note**: If you modify the path repository to disable symlinks, you will need to run `composer update` to pick up changes from the original directory source.
-
-## ⚙️ Configuration
-
-Publish the configuration file to customize Laralink:
+### See what is linked: `laralink:list`
 
 ```bash
-php artisan vendor:publish --tag=laralink-config
+php artisan laralink:list                 # table of every package with its status
+php artisan laralink:list --filter=local  # only packages in ./packages (or --filter=remote)
+php artisan laralink:list --json          # for scripts and CI
 ```
 
-### Available Configuration Options
+Each row shows the constraint from `composer.json`, the version installed according to `composer.lock`, and a
+status: **Linked**, **Local files, not linked** (in `./packages` but without a path repository), **Linked, not
+required**, or **Remote**. The JSON has the same fields plus `source` (the symlink target or the Git URL).
 
-```php
-return [
-    'defaults' => [
-        'branch' => 'main',              // Default Git branch
-        'packages_path' => 'packages',   // Where packages are stored
-        'symlink' => true,               // Use symlinks by default
-        'auto_validate' => true,         // Validate packages automatically
-    ],
-    
-    'ui' => [
-        'show_progress_bars' => true,    // Show progress indicators
-        'enable_colors' => true,         // Use colored output
-        'show_emojis' => true,           // Show emoji indicators
-    ],
-    
-    'validation' => [
-        'require_composer_json' => true,
-        'check_php_compatibility' => true,
-    ],
-];
-```
-
----
-
-## 🛠️ Common Use Cases
-
-### Team Development
-Each developer can link packages locally with different branches:
+### Switch back: `laralink:publish`
 
 ```bash
-# Developer A
-php artisan laralink:dev company/core-package --branch=feature/new-api
-
-# Developer B
-php artisan laralink:dev company/core-package --branch=bugfix/auth-fix
+php artisan laralink:publish [vendor/package] [--delete] [--backup] [--force]
 ```
 
-### Monorepo Setup
-Link multiple packages from a monorepo structure:
+| Option | What it does |
+|---|---|
+| `--delete` | Also remove `./packages/vendor/package`. A symlink is unlinked; the folder it points to is not touched. |
+| `--backup` | With `--delete`, copy the files to `./packages/.backups/vendor/package-<date>` first (Git history included). |
+| `--force` | Skip the confirmation, and delete a clone even if it has uncommitted changes. |
+
+The path repository is removed and Composer installs the constraint the package had before it was linked, or
+the latest release (`composer require vendor/package`) if it wasn't required before. If no released version
+can be installed (for example the package isn't on Packagist yet), `composer.json` is restored and the
+package stays linked. Without a package name it asks which linked package to switch back.
+
+### `php artisan about`
+
+Laralink adds its installed version and a support link to `php artisan about`. Nothing else is printed and it
+makes no network calls.
+
+## Testing
 
 ```bash
-php artisan laralink:dev --source=./../monorepo/packages/auth
-php artisan laralink:dev --source=./../monorepo/packages/payments
-php artisan laralink:dev --source=./../monorepo/packages/notifications
-```
-
-### Package Testing
-Test packages against different versions:
-
-```bash
-# Test beta version
-php artisan laralink:dev vendor/package --branch=v2.0-beta
-
-# Run your tests
-php artisan test
-
-# Switch back when done
-php artisan laralink:publish vendor/package
-```
-
-### CI/CD Integration
-Automate package management in your CI pipeline:
-
-```bash
-# Link package from CI variables
-php artisan laralink:dev vendor/package \
-  --source=\$CI_REPOSITORY_URL \
-  --branch=\$CI_COMMIT_BRANCH \
-  --no-interaction
-
-# Verify setup
-php artisan laralink:list --json
-
-# Cleanup after tests
-php artisan laralink:publish vendor/package --force --delete
-```
-
----
-
-## ❗ Troubleshooting
-
-### Permission Denied Errors
-```bash
-# Fix directory permissions
-chmod -R 755 ./packages
-
-# Fix ownership (Linux/Mac)
-sudo chown -R \(USER:\)USER ./packages
-```
-
-### Git Clone Failures
-```bash
-# Test repository access
-git ls-remote https://github.com/vendor/package.git
-
-# Try SSH instead of HTTPS
-php artisan laralink:dev vendor/package --source=git@github.com:vendor/package.git
-
-# Check your Git credentials
-git config --list
-```
-
-### Composer Issues
-```bash
-# Clear composer cache
-composer clear-cache
-
-# Run diagnostics
-composer diagnose
-
-# Update composer itself
-composer self-update
-
-# Update with verbose output for debugging
-composer update -vvv
-```
-
-### Package Not Found
-```bash
-# Verify package exists on Packagist
-curl -s https://repo.packagist.org/p2/vendor/package.json
-
-# Check if package name matches composer.json
-cat packages/vendor/package/composer.json | grep name
-```
-
-> 💡 **Note**: Ensure your main project's `composer.json` allows development packages by adding `"minimum-stability": "dev"`.
-
----
-
-## 🧪 Testing
-
-```bash
-# Run the test suite
 composer test
-
-# With coverage report
-composer test-coverage
-
-# Static analysis
-composer analyse
+scripts/ci-local.sh   # every PHP 8.3–8.5 × Laravel 12/13 combination, Pint and PHPStan
 ```
 
----
+## Need this built into your app, or something custom?
 
-## 🤝 Contributing
+I build Laravel packages, internal tooling and features for teams. If you want a package extracted from your
+app, a private package set up for your team, or something this package doesn't do,
+[get in touch](https://amjad.com.pk/contact?utm_source=github&utm_medium=readme&utm_campaign=laralink).
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Support
 
-### Development Setup
-```bash
-# Clone the repository
-git clone https://github.com/amjadiqbal/laralink.git
+- 🐛 **Bug or feature request**: [open an issue](https://github.com/amjadiqbal/laralink/issues)
+- 🔒 **Security issue**: please report privately via GitHub's security tab
 
-# Navigate to directory
-cd laralink
+## Need this customised, or something built?
 
-# Install dependencies
-composer install
+I'm available for custom development, package integration, and technical consulting.
 
-# Run tests
-composer test
-```
+[![Hire me on Upwork](https://img.shields.io/badge/Hire%20me-Upwork-6FDA44?style=flat-square&logo=upwork&logoColor=white)](https://www.upwork.com/freelancers/amjadkhatri)
 
-### Guidelines
-- Follow PSR-12 coding standards.
-- Add tests for new features.
-- Update documentation as needed.
-- Keep PRs focused and atomic.
-- Write clear commit messages.
+## More packages
 
----
+Part of a family of open-source packages. See [all of them](https://github.com/amjadiqbal?tab=repositories).
 
-## 📈 Roadmap
+| | |
+|---|---|
+| [kiln](https://github.com/amjadiqbal/kiln) | Deploy-time OPcache control for Laravel |
+| [laravel-driver-js](https://github.com/amjadiqbal/laravel-driver-js) | Product tours and onboarding for Laravel |
+| [laravel-logpulse](https://github.com/amjadiqbal/laravel-logpulse) | Log health monitoring and alerting |
+| [laravel-tiptap](https://github.com/amjadiqbal/laravel-tiptap) | Tiptap editor for Laravel |
 
-Future plans for Laralink:
-- **Package Creation Wizard**: Interactive scaffolding for new packages.
-- **Multi-Repository Support**: Link from multiple sources simultaneously.
-- **Package Analytics**: Track usage and development metrics.
-- **Web Dashboard**: Visual interface for package management.
-- **VS Code Extension**: IDE integration for seamless workflow.
-- **Package Templates**: Pre-configured templates for quick starts.
+## Credits
 
----
+- [Amjad Iqbal](https://amjad.com.pk)
 
-## 📄 License
+## License
 
-The MIT License (MIT). Please see the [License File](LICENSE.md) for more information.
-
----
-
-## 👨‍💻 Author
-
-**Amjad Iqbal**
-- GitHub: [@amjadiqbal](https://github.com/amjadiqbal)
-
----
-
-## ⭐ Support
-
-If you find Laralink useful, please consider:
-- Starring the repository ⭐
-- Sharing with your network 🗣️
-- Contributing to development 🛠️
-- Reporting issues and suggesting features 💡
-
----
-
-## 📞 Contact
-
-For security issues, please email `your-email@example.com` instead of using the public issue tracker.
-
----
-
-<p align="center">Made with ❤️ for Laravel developers</p>
-<p align="center"><em>Simplify your package development workflow with Laralink</em></p>
-
-## Support & Community
-
-### Custom Development
-[Hire me on Upwork](https://www.upwork.com/freelancers/amjadkhatri) for:
-- Package integration
-- Custom feature development
-- Technical consultation
-- Project implementation
-
-### Community Support
-- [Discord Community](https://discord.com/channels/1352854772859932702/1352854916690874388)
-- [GitHub Issues](https://github.com/amjadiqbal/laralink/issues)
-
-For priority support and enterprise solutions, please reach out via Upwork for direct assistance.
-
-## Author
-
-**Amjad Iqbal** — [amjad.com.pk](https://amjad.com.pk) · [Discord](https://discord.com/channels/1352854772859932702/1352854916690874388) · [Upwork](https://www.upwork.com/freelancers/amjadkhatri) · [GitHub](https://github.com/AmjadIqbal)
+MIT. See [LICENSE.md](LICENSE.md).
