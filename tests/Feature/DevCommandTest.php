@@ -149,6 +149,24 @@ it('will not replace a symlink without --force, and never replaces a real folder
     expect(is_link($this->project.'/packages/acme/copied'))->toBeFalse();
 });
 
+it('reinstalls when vendor/ still points at the previous source after a forced re-link', function () {
+    $first = $this->makePackage('acme/hello');
+    $this->artisan('laralink:dev', ['--source' => $first])->assertSuccessful();
+    mkdir($this->project.'/vendor/acme', 0755, true);
+    symlink($first, $this->project.'/vendor/acme/hello');
+
+    $second = $this->sources.'/second';
+    mkdir($second);
+    file_put_contents($second.'/composer.json', json_encode(['name' => 'acme/hello']));
+
+    $this->artisan('laralink:dev', ['--source' => $second, '--force' => true])->assertSuccessful();
+
+    expect(array_slice($this->runner->composerCalls(), 1))->toBe([
+        'require acme/hello:@dev --with-all-dependencies',
+        'reinstall acme/hello',
+    ]);
+});
+
 it('re-links files already in ./packages in place', function () {
     mkdir($this->project.'/packages/acme/kept', 0755, true);
     file_put_contents($this->project.'/packages/acme/kept/composer.json', json_encode(['name' => 'acme/kept']));

@@ -174,7 +174,12 @@ class DevCommand extends Command
             $arguments[] = '--dev';
         }
 
-        if (! $this->composer($laralink, $arguments)) {
+        // Composer resolves a path package to the real folder behind ./packages/vendor/package. If vendor/ already
+        // points somewhere (a re-link with --force), the version is unchanged and Composer would keep the old target.
+        $vendorPath = $laralink->getBasePath().DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.$vendor.DIRECTORY_SEPARATOR.$package;
+        $repoint = is_link($vendorPath) && realpath($vendorPath) !== realpath($laralink->localPath($vendor, $package));
+
+        if (! $this->composer($laralink, $arguments) || ($repoint && ! $this->composer($laralink, ['reinstall', $name]))) {
             $laralink->writeComposerJson($before);
             $laralink->rememberLink($name, $known);
 

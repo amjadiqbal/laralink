@@ -56,6 +56,7 @@ class FakeProcessRunner implements ProcessRunner
 
         foreach ($this->commands as $call) {
             $index = array_search('require', $call['command'], true);
+            $index = $index === false ? array_search('reinstall', $call['command'], true) : $index;
 
             if ($call['command'][0] !== 'git' && $index !== false) {
                 $calls[] = implode(' ', array_slice($call['command'], $index));
