@@ -405,6 +405,7 @@ class Laralink
                 $this->copyDirectoryFiltered($from, $to, $exclude);
             } else {
                 $this->files->copy($from, $to);
+                @chmod($to, fileperms($from) & 0777);
             }
         }
     }

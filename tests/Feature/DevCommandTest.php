@@ -25,6 +25,8 @@ it('copies instead of symlinking with --copy, skipping .git and vendor', functio
     mkdir($source.'/.github');
     file_put_contents($source.'/.github/funding.yml', 'x');
     symlink('src/Hello.php', $source.'/hello-link.php');
+    file_put_contents($source.'/run.sh', "#!/bin/sh\n");
+    chmod($source.'/run.sh', 0755);
 
     $this->artisan('laralink:dev', ['--source' => $source, '--copy' => true])->assertSuccessful();
 
@@ -34,7 +36,8 @@ it('copies instead of symlinking with --copy, skipping .git and vendor', functio
         ->and(file_exists($copy.'/.git'))->toBeFalse()
         ->and(file_exists($copy.'/vendor'))->toBeFalse()
         ->and(file_exists($copy.'/.github/funding.yml'))->toBeTrue()
-        ->and(readlink($copy.'/hello-link.php'))->toBe('src/Hello.php');
+        ->and(readlink($copy.'/hello-link.php'))->toBe('src/Hello.php')
+        ->and(is_executable($copy.'/run.sh'))->toBeTrue();
 });
 
 it('clones a Git repository into ./packages under the name from its composer.json', function () {
